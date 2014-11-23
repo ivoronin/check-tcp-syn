@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 #
 # check_tcp_syn:   TCP half-open check script for keepalived's MISC_CHECK
 #
@@ -15,24 +15,7 @@
 #                  2 of the License, or (at your option) any later version.
 #
 
-set -e
-
-if [ "$#" -ne "2" ]; then
-    echo "Usage: check_tcp_syn ADDR PORT" 1>&2
-    exit 1
-fi
-
-ADDR="$1"
-PORT="$2"
-
-NMAP_CMD="nmap -n -sS -Pn -oX - -p ${PORT} ${ADDR}"
-XPATH_EXPR="string(/nmaprun/host[address/@addr='${ADDR}']/ports/port[@portid='${PORT}']/state/@state)"
-XMLLINT_CMD="xmllint --xpath ${XPATH_EXPR} -"
-
-STATE="$(${NMAP_CMD} | ${XMLLINT_CMD})"
-
-if [ "$STATE" == "open" ]; then
-    exit 0
-else
-    exit 1
-fi
+[ "$#" -ne "2" ] && echo "Usage: check_tcp_syn ADDR PORT" 1>&2 && exit 1
+XPATH="string(/nmaprun/host[address/@addr='$1']/ports/port[@portid='$2']/state/@state)"
+STATE="$(nmap -n -sS -Pn -oX - -p "$2" "$1" | xmllint --xpath "${XPATH}" -)"
+[ "${STATE}" == "open" ] && exit 0 || exit 1
